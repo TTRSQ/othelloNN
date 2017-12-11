@@ -93,8 +93,28 @@ public:
         }
     }
     
+    void softmax(){
+        for (int i = 0; i < w; i++) {
+            double sum = 0;
+            for (int j = 0; j < w; j++) {
+                sum += exp(t[i][j]);
+            }
+            for (int j = 0; j < w; j++) {
+                t[i][j] = exp(t[i][j])/sum;
+            }
+        }
+    }
     
+    vector<double> cross_entropy(vecto<int> correct_vec){
+        vector<double> v;
+        v.resize(h);
+        for (int i = 0; i < h; i++) {
+            v[i] = -log(t[i][correct_vec[i]]);
+        }
+        return v;
+    }
     
+    //
     void adam_lite(double leaning_rate, vector<vector<double> > &ada_grad, vector<vector<double> > &velocity_matrix, vector<vector<double> > &prime){
         for (int i = 0; i < prime.size(); i++) {
             for (int j = 0; j < prime[0].size(); j++) {
