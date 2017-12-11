@@ -301,20 +301,59 @@ int rand_game(int game_num){
     return winner;
 }
 
+void vs_random(int pcolor){
+    init_ban();
+    disp_ban();
+    
+    int player = blk;
+    
+    while (!end_game()) {
+        
+        vector<pair<int, int> > v = get_putList(player);
+        if (v.size() == 0) {
+            cout << ((player == wht)? "white ": "black ") << "pass." << endl;
+            continue;
+        }
+        
+        int x,y;
+        
+        if (player == pcolor) {
+            cout << "put xy" << endl;
+            bool flag = 1;
+            while (flag) {
+                int k;
+                cin >> k;
+                x = k/10;
+                y = k%10;
+                if (check_xy(x, y, pcolor)) {
+                    flag = 0;
+                }else{
+                    cout << "you can't put there." << endl;
+                }
+            }
+            
+        }else{
+            int select = rand()%v.size();
+            x = v[select].first;
+            y = v[select].second;
+        }
+        
+        update_xy(x, y, player);
+        disp_ban();
+        cout << ((player == pcolor)? "you ": "cp ") << "put " << x << y << endl;
+        player = (player == wht)? blk: wht;
+    }
+    
+    winner_call();
+}
+
 int main(){
     srand((unsigned int)time(0));
     for (int i = 0; i < 5; i++) int temp = rand();
-    
-    int game_num = 1;
-    
     clock_t start = clock();
-    for (int i = 0; i < 30000; i++) {
-        int draw_flag = yet;
-        while (draw_flag == yet) {
-            draw_flag = rand_game(game_num);
-        }
-        game_num++;
-    }
+    
+    vs_random(wht);
+    
     clock_t end = clock();
     cout << "Execution time " << (double)(end - start) / CLOCKS_PER_SEC << "sec." << endl;
     
