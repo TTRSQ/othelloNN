@@ -9,14 +9,17 @@ using namespace std;
 
 
 class matrix{
-public:
     int h, w;
     vector<vector<double> > t;
+    vector<vector<double> > sub_matrix;
     
-    matrix(vector<vector<double> > array){
-        h = array.size();
-        w = array[0].size();
-        t = array;
+    vector<double> get_vector_coln(int col){
+        vector<double> v;
+        v.resize(h);
+        for (int i = 0; i < h; i++) {
+            v[i] = t[i][col];
+        }
+        return v;
     }
     
     double dot_vec(vector<double> &v1, vector<double> &v2){
@@ -29,15 +32,32 @@ public:
         return sum;
     }
     
-    vector<double> get_vector_coln(int col){
-        vector<double> v;
-        v.resize(h);
-        for (int i = 0; i < h; i++) {
-            v[i] = t[i][col];
-        }
-        return v;
+    
+public:
+    matrix(vector<vector<double> > array){
+        h = array.size();
+        w = array[0].size();
+        t = array;
     }
     
+    void shape(){
+        cout << "[" << h << ", " << w << "]" << endl;
+    }
+    
+    void print(){
+        cout << '[';
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                if(j != 0) cout << ' ';
+                cout << t[i][j];
+            }
+            if(i == h-1) cout << ']';
+            cout << endl ;
+        }
+        cout << endl;
+    }
+    
+    //
     void dot(matrix &t2){
         if(w != t2.h){
             cout << "dot Shape error." << endl;
@@ -65,27 +85,22 @@ public:
         }
     }
     
-    void shape(){
-        cout << "[" << h << ", " << w << "]" << endl;
-    }
-    
-    void print(){
-        cout << '[';
-        for (int i = 0; i < h; i++) {
-            for (int j = 0; j < w; j++) {
-                if(j != 0) cout << ' ';
-                cout << t[i][j];
-            }
-            if(i == h-1) cout << ']';
-            cout << endl ;
-        }
-        cout << endl;
-    }
-    
     void relu(){
         for (int i = 0; i < h; i++) {
             for (int j = 0; j < w; j++) {
-                t[i][j] = ma(t[i][j], 0);
+                t[i][j] = max(t[i][j], 0);
+            }
+        }
+    }
+    
+    
+    
+    void adam_lite(double leaning_rate, vector<vector<double> > &ada_grad, vector<vector<double> > &velocity_matrix, vector<vector<double> > &prime){
+        for (int i = 0; i < prime.size(); i++) {
+            for (int j = 0; j < prime[0].size(); j++) {
+                ada_grad[i][j] += prime[i][j]*prime[i][j];
+                velocity_matrix[i][j] = 0.9*velocity_matrix[i][j] - (leaning_rate/sqrt(ada_grad + 0.0000001))*prime[i][j];
+                t[i][j] += velocity_matrix[i][j];
             }
         }
     }
