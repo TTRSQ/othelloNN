@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include "matrix.hpp"
+#include "network.hpp"
 
 using namespace std;
 

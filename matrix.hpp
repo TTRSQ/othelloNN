@@ -9,6 +9,7 @@ using namespace std;
 
 
 class matrix{
+public:
     int h, w;
     vector<vector<double> > t;
     vector<vector<double> > sub_matrix;
@@ -31,9 +32,9 @@ class matrix{
         }
         return sum;
     }
+    //基本演算
+    matrix(){}
     
-    
-public:
     matrix(vector<vector<double> > array){
         h = array.size();
         w = array[0].size();
@@ -57,7 +58,18 @@ public:
         cout << endl;
     }
     
-    //
+    void transpose(){
+        vector<vector<double> > v;
+        v.resize(w);
+        for (int i = 0; i < w; i++) {
+            v[i].resize(h);
+            for (int j = 0; j < h; h++) {
+                v[i][j] = t[j][i];
+            }
+        }
+        t = v;
+    }
+    
     void dot(matrix &t2){
         if(w != t2.h){
             cout << "dot Shape error." << endl;
@@ -82,46 +94,6 @@ public:
                 }
             }
             t = t3;
-        }
-    }
-    
-    void relu(){
-        for (int i = 0; i < h; i++) {
-            for (int j = 0; j < w; j++) {
-                t[i][j] = max(t[i][j], 0);
-            }
-        }
-    }
-    
-    void softmax(){
-        for (int i = 0; i < w; i++) {
-            double sum = 0;
-            for (int j = 0; j < w; j++) {
-                sum += exp(t[i][j]);
-            }
-            for (int j = 0; j < w; j++) {
-                t[i][j] = exp(t[i][j])/sum;
-            }
-        }
-    }
-    
-    vector<double> cross_entropy(vecto<int> correct_vec){
-        vector<double> v;
-        v.resize(h);
-        for (int i = 0; i < h; i++) {
-            v[i] = -log(t[i][correct_vec[i]]);
-        }
-        return v;
-    }
-    
-    //
-    void adam_lite(double leaning_rate, vector<vector<double> > &ada_grad, vector<vector<double> > &velocity_matrix, vector<vector<double> > &prime){
-        for (int i = 0; i < prime.size(); i++) {
-            for (int j = 0; j < prime[0].size(); j++) {
-                ada_grad[i][j] += prime[i][j]*prime[i][j];
-                velocity_matrix[i][j] = 0.9*velocity_matrix[i][j] - (leaning_rate/sqrt(ada_grad + 0.0000001))*prime[i][j];
-                t[i][j] += velocity_matrix[i][j];
-            }
         }
     }
 };

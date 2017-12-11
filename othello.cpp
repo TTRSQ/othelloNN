@@ -347,6 +347,10 @@ void vs_random(int pcolor){
     winner_call();
 }
 
+void vs_NN(){
+    
+}
+
 int main(){
     srand((unsigned int)time(0));
     for (int i = 0; i < 5; i++) int temp = rand();
