@@ -5,17 +5,14 @@
 #include<vector>
 #include<cmath>
 
-using namespace std;
-
-
 class matrix{
 public:
     int h, w;
-    vector<vector<double> > t;
-    vector<vector<double> > sub_matrix;
+    std::vector<std::vector<double> > t;
+    std::vector<std::vector<double> > sub_matrix;
     
-    vector<double> get_vector_coln(int col){
-        vector<double> v;
+    std::vector<double> get_vector_coln(int col){
+        std::vector<double> v;
         v.resize(h);
         for (int i = 0; i < h; i++) {
             v[i] = t[i][col];
@@ -23,9 +20,9 @@ public:
         return v;
     }
     
-    double dot_vec(vector<double> &v1, vector<double> &v2){
+    double dot_vec(std::vector<double> &v1, std::vector<double> &v2){
         double sum = 0;
-        int dotSize = min(v1.size(), v2.size());
+        int dotSize = std::min(v1.size(), v2.size());
         
         for (int i = 0; i < dotSize; i++) {
             sum += v1[i] * v2[i];
@@ -35,31 +32,41 @@ public:
     //基本演算
     matrix(){}
     
-    matrix(vector<vector<double> > array){
+    matrix(std::vector<std::vector<double> > array){
         h = array.size();
         w = array[0].size();
         t = array;
     }
     
+    void sizeinit(matrix &in){
+        h = in.h;
+        w = in.w;
+        t.resize(h);
+        for (int i = 0; i < h; i++) {
+            t[i].resize(w);
+            std::fill(t[i].begin(), t[i].end(), 0.0);
+        }
+    }
+    
     void shape(){
-        cout << "[" << h << ", " << w << "]" << endl;
+        std::cout << "[" << h << ", " << w << "]" << std::endl;
     }
     
     void print(){
-        cout << '[';
+        std::cout << '[';
         for (int i = 0; i < h; i++) {
             for (int j = 0; j < w; j++) {
-                if(j != 0) cout << ' ';
-                cout << t[i][j];
+                if(j != 0) std::cout << ' ';
+                std::cout << t[i][j];
             }
-            if(i == h-1) cout << ']';
-            cout << endl ;
+            if(i == h-1) std::cout << ']';
+            std::cout << std::endl ;
         }
-        cout << endl;
+        std::cout << std::endl;
     }
     
-    void transpose(){
-        vector<vector<double> > v;
+    matrix transpose(){
+        std::vector<std::vector<double> > v;
         v.resize(w);
         for (int i = 0; i < w; i++) {
             v[i].resize(h);
@@ -67,20 +74,21 @@ public:
                 v[i][j] = t[j][i];
             }
         }
-        t = v;
+        matrix m(v);
+        return m;
     }
     
     void dot(matrix &t2){
         if(w != t2.h){
-            cout << "dot Shape error." << endl;
+            std::cout << "dot Shape error." << std::endl;
             return;
         }else{
-            vector<vector<double> > t3;
-            vector<vector<double> > dotT;
+            std::vector<std::vector<double> > t3;
+            std::vector<std::vector<double> > dotT;
             w = t2.w;
             dotT.resize(w);
             for (int j = 0; j < w; j++) {
-                vector<double> v = t2.get_vector_coln(j);
+                std::vector<double> v = t2.get_vector_coln(j);
                 dotT[j] = v;
             }
             
@@ -88,7 +96,7 @@ public:
             for (int i = 0; i < h; i++) {
                 t3[i].resize(t2.w);
                 for (int j = 0; j < w; j++) {
-                    vector<double> v = t2.get_vector_coln(j);
+                    std::vector<double> v = t2.get_vector_coln(j);
                     t3[i][j] = dot_vec(t[i], dotT[j]);
                     print();
                 }
