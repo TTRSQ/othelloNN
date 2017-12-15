@@ -38,7 +38,17 @@ public:
         t = array;
     }
     
-    void sizeinit(matrix &in){
+    void sizeinit(int _h, int _w){
+        h = _h;
+        w = _w;
+        t.resize(h);
+        for (int i = 0; i < h; i++) {
+            t[i].resize(w);
+            std::fill(t[i].begin(), t[i].end(), 0.0);
+        }
+    }
+    
+    void sizeinit_from_matrix(matrix &in){
         h = in.h;
         w = in.w;
         t.resize(h);
@@ -70,12 +80,24 @@ public:
         v.resize(w);
         for (int i = 0; i < w; i++) {
             v[i].resize(h);
-            for (int j = 0; j < h; h++) {
+            for (int j = 0; j < h; j++) {
                 v[i][j] = t[j][i];
             }
         }
         matrix m(v);
         return m;
+    }
+    
+    void minus(matrix &mat){
+        if (mat.h == h && mat.w == w) {
+            for (int i = 0; i < h; i++) {
+                for (int j = 0; j < w; j++) {
+                    t[i][j] -= mat.t[i][j];
+                }
+            }
+        }else{
+            std::cout << "different shape minus" << std::endl;
+        }
     }
     
     void dot(matrix &t2){
@@ -98,11 +120,23 @@ public:
                 for (int j = 0; j < w; j++) {
                     std::vector<double> v = t2.get_vector_coln(j);
                     t3[i][j] = dot_vec(t[i], dotT[j]);
-                    print();
                 }
             }
             t = t3;
         }
+    }
+    
+    matrix sum_column(){
+        std::vector<std::vector<double> > v;
+        v.resize(1);
+        v[0].resize(w);
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                v[0][j] += t[i][j];
+            }
+        }
+        matrix m(v);
+        return m;
     }
 };
 
