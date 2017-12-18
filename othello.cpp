@@ -254,7 +254,7 @@ string makeName(int game_num){
     for (int i = 0; i < 5 - digitsNumber(game_num); i++) {
         s = s + "0";
     }
-    return "othelloFile/game" + s + to_string(game_num) + ".txt";
+    return "othellodata/game" + s + to_string(game_num) + ".txt";
 }
 
 int rand_game(int game_num){
@@ -358,8 +358,8 @@ int keta(int num,int k){
     }
 }
 
-std::pair<int, int> nnAnsor(std::string name, int pcol){
-    std::vector<double> v;
+pair<int, int> nnAnsor(string name, int pcol){
+    vector<double> v;
     v.resize(64);
     for (int i = 1; i < 9; i++) {
         for (int j = 1; j < 9; j++) {
@@ -387,38 +387,42 @@ std::pair<int, int> nnAnsor(std::string name, int pcol){
         cout << endl;
     }
     cout << endl;
-    std::vector<pair<int, int> > slist = get_putList(pcol);
-    std::pair<int, int> p = std::make_pair(slist[0].first, slist[0].second);
-    double val = v[slist[0].first + 8*slist[0].second];
+    vector<pair<int, int> > slist = get_putList(pcol);
+    for (int i = 0; i < slist.size(); i++) {
+        cout << slist[i].first << " " << slist[i].second << endl;
+    }
+    pair<int, int> p = make_pair(slist[0].first, slist[0].second);
+    double val = v[slist[0].first-1 + 8*(slist[0].second-1)];
     
     for (int i = 1; i < slist.size(); i++) {
-        if (val < v[slist[0].first + 8*slist[0].second]) {
-            val = v[slist[0].first + 8*slist[0].second];
-            p = std::make_pair(slist[0].first, slist[0].second);
+        if (val <= v[slist[i].first-1 + 8*(slist[i].second-1)]) {
+            val = v[slist[i].first-1 + 8*(slist[i].second-1)];
+            cout << ' ' << val;
+            p = make_pair(slist[i].first, slist[i].second);
         }
     }
     return p;
 }
 
 void lean_net(){
-    ifstream ifs("othelloFile/game00001.txt");
     string str;
+    vector<vector<double> > data;
     vector<vector<double> > teacher;
-    vector<vector<double> > in;
     
     string ban_line = "";
     vector<string> ban_list;
     vector<int> ind_list;
     
-    int counter = 1;
-    for (int i = 1; i <= 100; i++) {
-        string s = "othelloFile/game";
+    for (int i = 1; i <= 499; i++) {
+        string s = "othellodata/game";
         
         for (int k = 0; k < 5 - keta(i, 0); k++) {
             s = s + '0';
         }
         
         s = s + std::to_string(i) + ".txt";
+        
+        int counter = 1;
         
         ifstream ifs(s);
         while (getline(ifs, str)){
@@ -435,29 +439,25 @@ void lean_net(){
         ifs.close();
     }
     
+    data.resize(ban_list.size());
     teacher.resize(ind_list.size());
-    in.resize(ban_list.size());
-    
     for (int i = 0; i < ind_list.size(); i++) {
         teacher[i].resize(64);
-        in[i].resize(64);
+        data[i].resize(64);
         for (int j = 0; j < 64; j++) {
-            in[i][j] = ban_list[i][j] - '0';
+            data[i][j] = ban_list[i][j] - '0';
             teacher[i][j] = (ind_list[i] == j)? 1:0;
         }
     }
-    matrix mat_in(in);
+    matrix mat_in(data);
     matrix mat_te(teacher);
-    
-    network n(64, 3, 100, 64, mat_in.h);
-    
+    network n(64, 2, 100, 64, mat_in.h);
     matplotlib g;
     g.open();
-    g.screen(0, 2, 5, 7);
+    g.screen(0, 0, 200, 7);
     
     double prim = 0.0;
-    
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 100; i++) {
         matrix inp = mat_in;
         matrix tep = mat_te;
         
@@ -470,7 +470,7 @@ void lean_net(){
         prim = err;
     }
     
-    n.save_network("NNprams2");
+    n.save_network("NNprams500");
 }
 
 void vs_NN(int pcolor){
@@ -506,7 +506,7 @@ void vs_NN(int pcolor){
             }
             
         }else{
-            std::pair<int, int> p = nnAnsor("NNprams2", player);
+            std::pair<int, int> p = nnAnsor("NNprams4", player);
             x = p.first;
             y = p.second;
         }
@@ -542,7 +542,7 @@ bool rand_vs_nn(int randcolor){
             x = v[select].first;
             y = v[select].second;
         }else{
-            std::pair<int, int> p = nnAnsor("NNprams2", player);
+            std::pair<int, int> p = nnAnsor("NNprams4", player);
             x = p.first;
             y = p.second;
         }
@@ -614,7 +614,11 @@ int main(){
     for (int i = 0; i < 5; i++) int temp = rand();
     clock_t start = clock();
     
-    nn_test();
+    int counter = 0;
+    
+    lean_net();
+    
+    cout << counter/200.0 << endl;
     
     clock_t end = clock();
     cout << "Execution time " << (double)(end - start) / CLOCKS_PER_SEC << "sec." << endl;
