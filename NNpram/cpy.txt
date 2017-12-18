@@ -1,5 +1,5 @@
 7
-Sat Dec 16 02:11:16 2017
+Sat Dec 16 15:54:24 2017
 input 64
 hide 2
 hide_neuron 3

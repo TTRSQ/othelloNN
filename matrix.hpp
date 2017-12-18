@@ -88,11 +88,11 @@ public:
         return m;
     }
     
-    void minus(matrix &mat){
+    void is_minus_to(matrix &mat){
         if (mat.h == h && mat.w == w) {
             for (int i = 0; i < h; i++) {
                 for (int j = 0; j < w; j++) {
-                    t[i][j] -= mat.t[i][j];
+                    t[i][j] = mat.t[i][j] - t[i][j];
                 }
             }
         }else{
