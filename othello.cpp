@@ -457,7 +457,7 @@ void lean_net(){
     g.screen(0, 0, 200, 7);
     
     double prim = 0.0;
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 200; i++) {
         matrix inp = mat_in;
         matrix tep = mat_te;
         
