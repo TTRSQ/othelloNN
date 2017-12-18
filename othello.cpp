@@ -2,6 +2,8 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <cmath>
+#include <random>
 #include <time.h>
 #include "network.hpp"
 #include "matplotlib.hpp"
@@ -211,6 +213,64 @@ vector<pair<int, int> > get_putList(int col){
     return V;
 }
 
+class nn_reader{
+public:
+    network net;
+    std::random_device rd;
+    
+    nn_reader(string name){
+        net.load_network(name);
+    }
+    
+    pair<int, int> nnAnsor(int pcol){
+        vector<double> v;
+        v.resize(64);
+        for (int i = 1; i < 9; i++) {
+            for (int j = 1; j < 9; j++) {
+                if (ban[i][j] != yet) {
+                    v[(i-1)*8+j-1] = (ban[i][j] == pcol)? 1.0: 2.0;
+                }else{
+                    v[(i-1)*8+j-1] = 0.0;
+                }
+            }
+        }
+        
+        v = net.prediction(v);
+        
+        vector<pair<int, int> > plist = get_putList(pcol);
+        vector<pair<pair<int ,int>, double > > pos;
+        
+        double sum = 0.0;
+        
+        for (int i = 0; i < plist.size(); i++) {
+            int x = plist[i].first - 1;
+            int y = plist[i].second - 1;
+            pos.push_back(make_pair(plist[i], v[x + 8*y]));
+            
+            sum += exp(v[x + 8*y]);
+        }
+        
+        for (int i = 0; i < pos.size(); i++) {
+            pos[i].second = exp(pos[i].second)/sum;
+        }
+        
+        std::random_device rnd;
+        std::mt19937 mt(rnd());
+        std::uniform_int_distribution<int> rand5(0,10000000);
+        double rand01 = (rand5(mt))/10000000.0;
+        sum = 0;
+        int index = 0;
+        for (int i = 0; i < pos.size()+5; i++) {
+            sum += pos[i%pos.size()].second;
+            if (sum > rand01) {
+                index = i%pos.size();
+                break;
+            }
+        }
+        return pos[index].first;
+    }
+};
+
 void printPosList(vector<pair<int, int> > V){
     for (int i = 0; i < V.size(); i++) {
         printf("[ %d, %d]\n",V[i].first, V[i].second);
@@ -358,52 +418,6 @@ int keta(int num,int k){
     }
 }
 
-pair<int, int> nnAnsor(string name, int pcol){
-    vector<double> v;
-    v.resize(64);
-    for (int i = 1; i < 9; i++) {
-        for (int j = 1; j < 9; j++) {
-            if (ban[i][j] != yet) {
-                v[(i-1)*8+j-1] = (ban[i][j] == pcol)? 1.0: 2.0;
-            }else{
-                v[(i-1)*8+j-1] = 0.0;
-            }
-        }
-    }
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            cout << ' ' << v[8*i+j];
-        }
-        cout << endl;
-    }
-    cout << endl;
-    network n;
-    n.load_network(name);
-    v = n.prediction(v);
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            cout << ' ' << v[8*i+j];
-        }
-        cout << endl;
-    }
-    cout << endl;
-    vector<pair<int, int> > slist = get_putList(pcol);
-    for (int i = 0; i < slist.size(); i++) {
-        cout << slist[i].first << " " << slist[i].second << endl;
-    }
-    pair<int, int> p = make_pair(slist[0].first, slist[0].second);
-    double val = v[slist[0].first-1 + 8*(slist[0].second-1)];
-    
-    for (int i = 1; i < slist.size(); i++) {
-        if (val <= v[slist[i].first-1 + 8*(slist[i].second-1)]) {
-            val = v[slist[i].first-1 + 8*(slist[i].second-1)];
-            cout << ' ' << val;
-            p = make_pair(slist[i].first, slist[i].second);
-        }
-    }
-    return p;
-}
-
 void lean_net(){
     string str;
     vector<vector<double> > data;
@@ -476,6 +490,7 @@ void lean_net(){
 void vs_NN(int pcolor){
     init_ban();
     disp_ban();
+    nn_reader net("NNprams500");
     
     int player = blk;
     
@@ -506,7 +521,7 @@ void vs_NN(int pcolor){
             }
             
         }else{
-            std::pair<int, int> p = nnAnsor("NNprams4", player);
+            std::pair<int, int> p = net.nnAnsor(player);
             x = p.first;
             y = p.second;
         }
@@ -522,6 +537,7 @@ void vs_NN(int pcolor){
 
 bool rand_vs_nn(int randcolor){
     init_ban();
+    nn_reader net("NNprams500");
     //disp_ban();
     
     int player = blk;
@@ -542,7 +558,7 @@ bool rand_vs_nn(int randcolor){
             x = v[select].first;
             y = v[select].second;
         }else{
-            std::pair<int, int> p = nnAnsor("NNprams4", player);
+            std::pair<int, int> p = net.nnAnsor(player);
             x = p.first;
             y = p.second;
         }
@@ -564,49 +580,50 @@ bool rand_vs_nn(int randcolor){
     return counter[randcolor] < counter[((randcolor == wht)? blk: wht)];
 }
 
-void nn_test(){
-    //1ケースだけ学ばせて予測値の変化を見る
+bool nn1_vs_nn2(int nn1color){
     init_ban();
-    disp_ban();
-    network n(64, 2, 100, 64, 1);
-    n.save_network("NNparms3");
-    vector<double> v;
-    vector<double> vans;
-    v.resize(64);
-    for (int i = 1; i < 9; i++) {
-        for (int j = 1; j < 9; j++) {
-            v[(i-1)*8 + (j-1)] = (double(ban[i][j]));
+    nn_reader n1("NNprams4");
+    nn_reader n2("NNprams500");
+    //disp_ban();
+    
+    int player = blk;
+    
+    while (!end_game()) {
+        
+        vector<pair<int, int> > v = get_putList(player);
+        if (v.size() == 0) {
+            //cout << ((player == wht)? "white ": "black ") << "pass." << endl;
+            player = (player == wht)? blk: wht;
+            continue;
+        }
+        
+        int x,y;
+        
+        if (player == nn1color) {
+            std::pair<int, int> p = n1.nnAnsor(player);
+            x = p.first;
+            y = p.second;
+        }else{
+            std::pair<int, int> p = n2.nnAnsor(player);
+            x = p.first;
+            y = p.second;
+        }
+        
+        update_xy(x, y, player);
+        disp_ban();
+        //cout << ((player == randcolor)? "rand ": "NN ") << "put " << x << y << endl;
+        player = (player == wht)? blk: wht;
+    }
+    
+    int counter[3] = {};
+    
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            counter[ban[i][j]]++;
         }
     }
     
-    vans.resize(64);
-    std::fill(vans.begin(), vans.end(), 0.0);
-    vans[3*8 + 2] = 1.0;
-    
-    vector<vector<double> > in;
-    vector<vector<double> > out;
-    
-    vector<double> kai;
-    
-    in.push_back(v);
-    out.push_back(vans);
-    
-    matrix mi(in);
-    matrix mo(out);
-    
-    cout << "before " << endl;
-    kai = n.prediction(v);
-    cout << "pre = " << kai[26] << endl;
-    
-    for(int i = 0; i < 10; i++){
-        n.for_and_backward(mi, mo);
-        n.leaning_sgd(0.01);
-    }
-    
-    cout << "after" << endl;
-    kai = n.prediction(v);
-    cout << "pre = " << kai[26] << endl;
-    
+    return counter[nn1color] < counter[((nn1color == wht)? blk: wht)];
 }
 
 int main(){
@@ -614,11 +631,7 @@ int main(){
     for (int i = 0; i < 5; i++) int temp = rand();
     clock_t start = clock();
     
-    int counter = 0;
-    
-    lean_net();
-    
-    cout << counter/200.0 << endl;
+    vs_NN(wht);
     
     clock_t end = clock();
     cout << "Execution time " << (double)(end - start) / CLOCKS_PER_SEC << "sec." << endl;

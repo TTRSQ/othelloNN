@@ -113,7 +113,7 @@ public:
     void softmax(matrix &in){
         for (int i = 0; i < in.h; i++) {
             double sum = 0;
-            double min = 1;
+            double min = in.t[i][0];
             for (int j = 0; j < in.w; j++) {
                 min = std::min(in.t[i][j], min);
             }
