@@ -51,6 +51,16 @@ public:
         bias_ada_grad.sizeinit(1, w);
     }
     
+    void init_size(){
+        prime_w_list.sizeinit_from_matrix(w_list);
+        velocity_matrix.sizeinit_from_matrix(w_list);
+        ada_grad.sizeinit_from_matrix(w_list);
+        
+        bias_prime.sizeinit_from_matrix(bias);
+        bias_velocity_matrix.sizeinit_from_matrix(bias);
+        bias_ada_grad.sizeinit_from_matrix(bias);
+    }
+    
     void add_bias(matrix &in){
         for (int i = 0; i < in.h; i++) {
             for (int j = 0; j < in.w; j++) {
@@ -295,7 +305,7 @@ public:
             buff = split(str, ' ');
             int biasnum = std::stoi(buff[1]);
             affine[i].bias.sizeinit(1, biasnum);
-            
+            affine[i].init_size();
             getline(inputfile, str);
             buff = split(str, ' ');
             for (int j = 0; j < biasnum; j++) {
@@ -323,7 +333,7 @@ public:
         buff = split(str, ' ');
         int biasnum = std::stoi(buff[1]);
         softmax.bias.sizeinit(1, biasnum);
-        
+        softmax.init_size();
         getline(inputfile, str);
         buff = split(str, ' ');
         for (int j = 0; j < biasnum; j++) {

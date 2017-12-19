@@ -22,78 +22,6 @@ int direction[8][2] = {
     {1,1}, {1,-1}, {-1,-1}, {-1,1}
 };
 
-class ban_hist{
-public:
-    //playerがbanの時にxyにさしてwin(bool)
-    int player;
-    int myban[8][8];
-    int x,y;
-    bool win;
-    
-    ban_hist(int _p, int _x, int _y){
-        player = _p;
-        x = _x;
-        y = _y;
-        win = false;
-    }
-    
-    void result(bool _w){
-        win = _w;
-    }
-    
-    void copy(){
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                myban[i][j] = ban[i+1][j+1];
-            }
-        }
-    }
-    
-    void disp_myban(){
-        //whtがxyに打って勝った
-        cout << endl;
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                if (myban[i][j] == yet) {
-                    cout << myban[i][j];
-                }else{
-                    int val;
-                    if(player == wht){
-                        val = (myban[i][j] == wht)? wht: blk;
-                    }else{
-                        val = (myban[i][j] == wht)? blk: wht;
-                    }
-                    cout << val;
-                }
-            }
-            cout << endl;
-        }
-        cout << x << y << endl;
-    }
-    
-    void save_file(string file_name){
-        ofstream outputfile(file_name, ios::app);
-        //whtがxyに打って勝った
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                if (myban[i][j] == yet) {
-                    outputfile << myban[i][j];
-                }else{
-                    int val;
-                    if(player == wht){
-                        val = (myban[i][j] == wht)? wht: blk;
-                    }else{
-                        val = (myban[i][j] == wht)? blk: wht;
-                    }
-                    outputfile << val;
-                }
-            }
-            outputfile << endl;
-        }
-        outputfile << x << y << endl;
-    }
-};
-
 bool update(int x, int y, int col, int dir, int depth){
     x += direction[dir][0];
     y += direction[dir][1];
@@ -213,12 +141,87 @@ vector<pair<int, int> > get_putList(int col){
     return V;
 }
 
+class ban_hist{
+public:
+    //playerがbanの時にxyにさしてwin(bool)
+    vector<double> myban;
+    vector<double> myans;
+    
+    ban_hist(){
+        myban.resize(64);
+        myans.resize(64);
+    }
+    
+    void bancpy(int col){
+        for (int i = 1; i < 9; i++) {
+            for (int j = 1; j < 9; j++) {
+                int index = (i-1)*8 + (j-1);
+                if (check_xy(j, i, col)) {
+                    myban[index] = 3.0;
+                }else{
+                    if (ban[i][j] == yet) {
+                        myban[index] = 0.0;
+                    }else{
+                        myban[index] = double((col == wht)? ban[i][j]: ((ban[i][j] == wht)? blk: wht));
+                    }
+                }
+            }
+        }
+    }
+    
+    void anscpy(pair<int, int> p){
+        int index = (p.second-1)*8 + (p.first-1);
+        fill(myans.begin(), myans.end(), 0.0);
+        myans[index] = 1.0;
+    }
+    
+    void print(){
+        for (int i = 0; i < 64; i++) {
+            if (i != 0) cout << ' ';
+            cout << myban[i];
+        }
+        cout << endl;
+        for (int i = 0; i < 64; i++) {
+            if (i != 0) cout << ' ';
+            cout << myans[i];
+        }
+        cout << endl;
+    }
+    
+    void printmyban(){
+        for (int i = 0; i < 64; i++) {
+            if (i%8 == 0) {
+                cout << endl;
+            }else{
+                cout << ' ';
+            }
+            cout << myban[i];
+        }
+        cout << endl;
+        for (int i = 0; i < 64; i++) {
+            if (i%8 == 0) {
+                cout << endl;
+            }else{
+                cout << ' ';
+            }
+            cout << myans[i];
+        }
+        cout << endl;
+    }
+};
+
 class nn_reader{
 public:
     network net;
     std::random_device rd;
     
+    nn_reader(){}
+    
     nn_reader(string name){
+        net.load_network(name);
+    }
+    
+    void reload_network(string name){
         net.load_network(name);
     }
     
@@ -315,52 +318,6 @@ string makeName(int game_num){
         s = s + "0";
     }
     return "othellodata/game" + s + to_string(game_num) + ".txt";
-}
-
-int rand_game(int game_num){
-    init_ban();
-    //disp_ban();
-    
-    int player = wht;
-    vector<ban_hist> game_hist;
-    
-    while (!end_game()) {
-        player = (player == wht)? blk: wht;
-        string plstring = (player == wht)? "white": "black";
-        int select;
-        vector<pair<int, int> > V = get_putList(player);
-        if (V.size() != 0) {
-            select = rand() % V.size();
-            //cout << plstring << " put " << V[select].first << V[select].second << endl;
-            ban_hist bh(player, V[select].first, V[select].second);
-            bh.copy();
-            game_hist.push_back(bh);
-            update_xy(V[select].first, V[select].second, player);
-            //disp_ban();
-        }else{
-            //cout << plstring << " pass" << endl;
-        }
-    }
-    int count[3] = {};
-    for (int i = 1; i < 9; i++) {
-        for (int j = 1; j < 9; j++) {
-            count[ban[i][j]]++;
-        }
-    }
-    
-    int winner = (count[wht] == count[blk])? yet: ((count[wht] > count[blk])? wht: blk);
-    
-    string file_name = makeName(game_num);
-    
-    for (int i = 0; i < game_hist.size(); i++) {
-        if(game_hist[i].player == winner) {
-            game_hist[i].result(true);
-            game_hist[i].save_file(file_name);
-        }
-        
-    }
-    //cout << file_name << " end." << endl;
-    return winner;
 }
 
 void vs_random(int pcolor){
@@ -580,50 +537,108 @@ bool rand_vs_nn(int randcolor){
     return counter[randcolor] < counter[((randcolor == wht)? blk: wht)];
 }
 
-bool nn1_vs_nn2(int nn1color){
-    init_ban();
-    nn_reader n1("NNprams4");
-    nn_reader n2("NNprams500");
-    //disp_ban();
+void nn_vs_nn(int sequence_num){
+    //ゲームをAIにさせた結果を保存しつつ100イテレーション
     
-    int player = blk;
+    string nn_name = "sequence0";
+    string nn_prename = nn_name;
     
-    while (!end_game()) {
+    //無学習ネットワークの作成
+    network n(64, 2, 100, 64, 3000);
+    n.save_network(nn_name);
+    
+    nn_reader nr;
+    
+    for (int sequence = 0; sequence < sequence_num; sequence++) {
+        nn_prename = nn_name;
+        nn_name = "sequence" + to_string(sequence + 1);
         
-        vector<pair<int, int> > v = get_putList(player);
-        if (v.size() == 0) {
-            //cout << ((player == wht)? "white ": "black ") << "pass." << endl;
-            player = (player == wht)? blk: wht;
-            continue;
+        //preで読み込んでnameで保存
+        nr.reload_network(nn_prename);
+        
+        vector<ban_hist> blackhist;
+        vector<ban_hist> whitehist;
+        
+        while (blackhist.size() < 1400 && whitehist.size() < 1400) {
+            
+            vector<ban_hist> temp_blackhist;
+            vector<ban_hist> temp_whitehist;
+            
+            init_ban();
+            int player = blk;
+            
+            while (!end_game()) {
+                vector<pair<int, int> > v = get_putList(player);
+                if (v.size() == 0) {
+                    player = (player == wht)? blk: wht;
+                    continue;
+                }
+                
+                ban_hist hist;
+                
+                pair<int, int> p = nr.nnAnsor(player);
+                hist.bancpy(player);
+                hist.anscpy(p);
+                update_xy(p.first, p.second, player);
+                
+                if (player == blk) {
+                    temp_blackhist.push_back(hist);
+                }else{
+                    temp_whitehist.push_back(hist);
+                }
+                
+                player = (player == wht)? blk: wht;
+            }
+            
+            int counter[3] = {};
+            
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    counter[ban[i][j]]++;
+                }
+            }
+            
+            if (counter[blk] != counter[wht]) {
+                if (counter[blk] > counter[wht]) {
+                    blackhist.insert(blackhist.end(), temp_blackhist.begin(), temp_blackhist.end());
+                }else{
+                    whitehist.insert(whitehist.end(), temp_whitehist.begin(), temp_whitehist.end());
+                }
+            }
         }
         
-        int x,y;
+        vector<vector<double> > matban;
+        vector<vector<double> > matans;
         
-        if (player == nn1color) {
-            std::pair<int, int> p = n1.nnAnsor(player);
-            x = p.first;
-            y = p.second;
-        }else{
-            std::pair<int, int> p = n2.nnAnsor(player);
-            x = p.first;
-            y = p.second;
+        for (int i = 0; i < blackhist.size(); i++) {
+            matban.push_back(blackhist[i].myban);
+            matans.push_back(blackhist[i].myans);
         }
         
-        update_xy(x, y, player);
-        disp_ban();
-        //cout << ((player == randcolor)? "rand ": "NN ") << "put " << x << y << endl;
-        player = (player == wht)? blk: wht;
+        for (int i = 0; i < whitehist.size(); i++) {
+            matban.push_back(whitehist[i].myban);
+            matans.push_back(whitehist[i].myans);
+        }
+        
+        matrix matrixban(matban);
+        matrix matrixans(matans);
+        
+        matplotlib g;
+        g.open();
+        g.screen(0, 0, 50, 6);
+        
+        double prime = 0.0;
+        for (int i = 0; i < 50; i++) {
+            nr.net.for_and_backward(matrixban, matrixans);
+            nr.net.leaning_adam(0.01);
+            double err = nr.net.calculate_error(matrixban, matrixans);
+            cout << "sequence:" << sequence << " " << i+1 << " err = " << err << endl;
+            g.line(i-1,prime,i,err);
+            prime = err;
+        }
+        g.close();
+        nr.net.save_network(nn_name);
     }
-    
-    int counter[3] = {};
-    
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            counter[ban[i][j]]++;
-        }
-    }
-    
-    return counter[nn1color] < counter[((nn1color == wht)? blk: wht)];
 }
 
 int main(){
@@ -631,7 +646,7 @@ int main(){
     for (int i = 0; i < 5; i++) int temp = rand();
     clock_t start = clock();
     
-    vs_NN(wht);
+    nn_vs_nn(5);
     
     clock_t end = clock();
     cout << "Execution time " << (double)(end - start) / CLOCKS_PER_SEC << "sec." << endl;
