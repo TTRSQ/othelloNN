@@ -123,15 +123,18 @@ public:
     void softmax(matrix &in){
         for (int i = 0; i < in.h; i++) {
             double sum = 0;
+            double max = in.t[i][0];
             double min = in.t[i][0];
             for (int j = 0; j < in.w; j++) {
+                max = std::max(in.t[i][j], max);
                 min = std::min(in.t[i][j], min);
             }
+            double mid = (max + min)/2;
             for (int j = 0; j < in.w; j++) {
-                sum += exp(in.t[i][j] - min);
+                sum += exp(in.t[i][j] - mid);
             }
             for (int j = 0; j < in.w; j++) {
-                in.t[i][j] = exp(in.t[i][j] - min)/sum;
+                in.t[i][j] = exp(in.t[i][j] - mid)/sum;
             }
         }
     }
@@ -381,7 +384,7 @@ public:
         }
     }
     
-    void adam_lite(double leaning_rate, matrix &ada_grad, matrix &velocity_matrix, matrix &prime_w_list, matrix &w_list){
+    static void adam_lite(double leaning_rate, matrix &ada_grad, matrix &velocity_matrix, matrix &prime_w_list, matrix &w_list){
         for (int i = 0; i < prime_w_list.h; i++) {
             for (int j = 0; j < prime_w_list.w; j++) {
                 ada_grad.t[i][j] += prime_w_list.t[i][j]*prime_w_list.t[i][j];
@@ -391,7 +394,7 @@ public:
         }
     }
     
-    void momentam(double leaning_rate, matrix &ada_grad, matrix &velocity_matrix, matrix &prime_w_list, matrix &w_list){
+    static void momentam(double leaning_rate, matrix &ada_grad, matrix &velocity_matrix, matrix &prime_w_list, matrix &w_list){
         for (int i = 0; i < prime_w_list.h; i++) {
             for (int j = 0; j < prime_w_list.w; j++) {
                 velocity_matrix.t[i][j] = 0.9*velocity_matrix.t[i][j] - prime_w_list.t[i][j];
@@ -400,7 +403,7 @@ public:
         }
     }
     
-    void sgd(double leaning_rate, matrix &ada_grad, matrix &velocity_matrix, matrix &prime_w_list, matrix &w_list){
+    static void sgd(double leaning_rate, matrix &ada_grad, matrix &velocity_matrix, matrix &prime_w_list, matrix &w_list){
         for (int i = 0; i < prime_w_list.h; i++) {
             for (int j = 0; j < prime_w_list.w; j++) {
                 w_list.t[i][j] +=  - prime_w_list.t[i][j];
@@ -408,31 +411,25 @@ public:
         }
     }
     
-    void leaning_adam(double leaning_rate){
+    void leaning(double leaning_rate, void (*func)(double, matrix&, matrix&, matrix&, matrix&)){
         for (int i = 0; i < affine.size(); i++) {
-            adam_lite(leaning_rate, affine[i].ada_grad, affine[i].velocity_matrix, affine[i].prime_w_list, affine[i].w_list);
-            adam_lite(leaning_rate, affine[i].bias_ada_grad, affine[i].bias_velocity_matrix, affine[i].bias_prime, affine[i].bias);
+            func(leaning_rate, affine[i].ada_grad, affine[i].velocity_matrix, affine[i].prime_w_list, affine[i].w_list);
+            func(leaning_rate, affine[i].bias_ada_grad, affine[i].bias_velocity_matrix, affine[i].bias_prime, affine[i].bias);
         }
-        adam_lite(leaning_rate, softmax.ada_grad, softmax.velocity_matrix, softmax.prime_w_list, softmax.w_list);
-        adam_lite(leaning_rate, softmax.bias_ada_grad, softmax.bias_velocity_matrix, softmax.bias_prime, softmax.bias);
+        func(leaning_rate, softmax.ada_grad, softmax.velocity_matrix, softmax.prime_w_list, softmax.w_list);
+        func(leaning_rate, softmax.bias_ada_grad, softmax.bias_velocity_matrix, softmax.bias_prime, softmax.bias);
+    }
+    
+    void leaning_adam(double leaning_rate){
+        leaning(leaning_rate, adam_lite);
     }
     
     void leaning_momentam(double leaning_rate){
-        for (int i = 0; i < affine.size(); i++) {
-            momentam(leaning_rate, affine[i].ada_grad, affine[i].velocity_matrix, affine[i].prime_w_list, affine[i].w_list);
-            momentam(leaning_rate, affine[i].bias_ada_grad, affine[i].bias_velocity_matrix, affine[i].bias_prime, affine[i].bias);
-        }
-        momentam(leaning_rate, softmax.ada_grad, softmax.velocity_matrix, softmax.prime_w_list, softmax.w_list);
-        momentam(leaning_rate, softmax.bias_ada_grad, softmax.bias_velocity_matrix, softmax.bias_prime, softmax.bias);
+        leaning(leaning_rate, momentam);
     }
     
     void leaning_sgd(double leaning_rate){
-        for (int i = 0; i < affine.size(); i++) {
-            sgd(leaning_rate, affine[i].ada_grad, affine[i].velocity_matrix, affine[i].prime_w_list, affine[i].w_list);
-            sgd(leaning_rate, affine[i].bias_ada_grad, affine[i].bias_velocity_matrix, affine[i].bias_prime, affine[i].bias);
-        }
-        sgd(leaning_rate, softmax.ada_grad, softmax.velocity_matrix, softmax.prime_w_list, softmax.w_list);
-        sgd(leaning_rate, softmax.bias_ada_grad, softmax.bias_velocity_matrix, softmax.bias_prime, softmax.bias);
+        leaning(leaning_rate, sgd);
     }
 };
 
