@@ -45,12 +45,15 @@ void cpytoarray(int array[8][8]){
     }
 }
 
-void cpytovector(std::vector<double> &vec, int array[8][8]){
-    vec.resize(64);
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            vec[8*i+j] = array[i][j];
+void cpytovector(std::vector<double> &vec, int array[8][8], int pcol){
+    vec.resize(128);
+    for (int k = 0; k < 2; k++) {
+        for (int i = 0; i < 8; i++) {
+            for (int j = 0; j < 8; j++) {
+                vec[64*k+8*i+j] = (array[i][j] == pcol)? 1.0: 0.0;
+            }
         }
+        pcol = (pcol == wht)? blk: wht;
     }
 }
 
@@ -183,16 +186,15 @@ public:
         }
     }
     
-    void bancpy_simple(int col){
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
-                int index = i*8 + j;
-                if (ban[i][j] == yet) {
-                    myban[index] = 0.0;
-                }else{
-                    myban[index] = double((col == wht)? ban[i][j]: ((ban[i][j] == wht)? blk: wht));
+    void bancpy_separate(int pcol){
+        myban.resize(128);
+        for (int k = 0; k < 2; k++) {
+            for (int i = 0; i < 8; i++) {
+                for (int j = 0; j < 8; j++) {
+                    myban[64*k+8*i+j] = (ban[i][j] == pcol)? 1.0: 0.0;
                 }
             }
+            pcol = (pcol == wht)? blk: wht;
         }
     }
     
@@ -318,7 +320,7 @@ public:
     nn_reader_sp(){}
     
     void make_initial(){
-        network n(64, 3, 128, 2, 300);
+        network n(128, 3, 128, 2, 300);
         net = n;
     }
     
@@ -337,7 +339,7 @@ public:
             cpytoarray(tempban);
             update_xy(v[i].first, v[i].second, pcol, tempban);
             std::vector<double> tempvec;
-            cpytovector(tempvec, tempban);
+            cpytovector(tempvec, tempban, pcol);
             std::vector<double> ans = net.prediction(tempvec);
             //cout << ans[0] << endl;
             anspq.push(std::make_pair(ans[0], v[i]));
@@ -459,7 +461,7 @@ int keta(int num,int k){
 void vs_NN(int pcolor){
     init_ban();
     disp_ban();
-    nn_reader_sp net("spPrams0");
+    nn_reader_sp net("nsp1");
     
     int player = blk;
     
@@ -504,7 +506,7 @@ void vs_NN(int pcolor){
 
 bool rand_vs_nn(int randcolor, string nn_name){
     init_ban();
-    nn_reader net(nn_name);
+    nn_reader_sp net(nn_name);
     
     int player = blk;
     
@@ -537,10 +539,10 @@ bool rand_vs_nn(int randcolor, string nn_name){
     return counter[randcolor] < counter[((randcolor == wht)? blk: wht)];
 }
 
-void nn_vs_nn(int start_num, int end_num){
-    //ゲームをAIにさせた結果を保存しつつ100イテレーション
+void nn_vs_nn(int start_num, int end_num, string name){
+    //ゲームをAIにさせた結果を保存しつつ200イテレーション、試合数は AI vs Rand 50, AI vs AI 50
     
-    std::string nn_name = "spPrams" + std::to_string(start_num-1);
+    std::string nn_name = name + std::to_string(start_num-1);
     std::string nn_prename = nn_name;
     
     nn_reader_sp nr;
@@ -549,13 +551,14 @@ void nn_vs_nn(int start_num, int end_num){
         clock_t start = clock();
         
         nn_prename = nn_name;
-        nn_name = "spPrams" + std::to_string(sequence);
+        nn_name = name + std::to_string(sequence);
+        
         //preで読み込んでnameで保存
         nr.reload_network(nn_prename);
         vector<ban_hist> win_and_d_hist;
         vector<ban_hist> lose_hist;
         
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 50; i++) {
             vector<ban_hist> temp_blackhist;
             vector<ban_hist> temp_whitehist;
             
@@ -578,7 +581,7 @@ void nn_vs_nn(int start_num, int end_num){
                     p = v[rand()%v.size()];
                 }
                 
-                hist.bancpy(player);
+                hist.bancpy_separate(player);
                 update_xy(p.first, p.second, player, ban);
                 
                 if (player == blk) {
@@ -604,6 +607,67 @@ void nn_vs_nn(int start_num, int end_num){
             }
             
         }
+        //ここでRandom に対する負け試合を50 得たい。
+        
+        int lose_counter = 0;
+        int rand_color = blk;
+        int rand_rate_count = 0;
+        
+        while (lose_counter < 50) {
+            rand_rate_count++;
+            vector<ban_hist> temp_blackhist;
+            vector<ban_hist> temp_whitehist;
+            
+            init_ban();
+            int player = blk;
+            rand_color = (rand_color == wht)? blk: wht;
+            
+            while (!end_game()) {
+                vector<pair<int, int> > v = get_putList(player);
+                if (v.size() == 0) {
+                    player = (player == wht)? blk: wht;
+                    continue;
+                }
+                
+                ban_hist hist;
+                pair<int, int> p;
+                
+                if (player == rand_color) {
+                    p = v[rand()%v.size()];
+                }else{
+                    p = nr.nnAnsor(player);
+                }
+                
+                hist.bancpy_separate(player);
+                update_xy(p.first, p.second, player, ban);
+                
+                if (player == blk) {
+                    temp_blackhist.push_back(hist);
+                }else{
+                    temp_whitehist.push_back(hist);
+                }
+                
+                player = (player == wht)? blk: wht;
+            }
+            std::map<int, int> counter = count();
+            
+            //random に負けた場合のみデータセットに追加
+            if (counter[rand_color] > counter[((rand_color == blk)? wht: blk)]) {
+                if (rand_color == blk) {
+                    win_and_d_hist.insert(win_and_d_hist.end(), temp_blackhist.begin(), temp_blackhist.end());
+                    lose_hist.insert(lose_hist.end(), temp_whitehist.begin(), temp_whitehist.end());
+                }else{
+                    win_and_d_hist.insert(win_and_d_hist.end(), temp_whitehist.begin(), temp_whitehist.end());
+                    lose_hist.insert(lose_hist.end(), temp_blackhist.begin(), temp_blackhist.end());
+                }
+                lose_counter++;
+            }
+        }
+        
+        cout << "win_rate = " << (1.0*(rand_rate_count - 50))/rand_rate_count << endl;
+        
+        //ここまでで学習データ作成完了。
+        
         vector<vector<double> > matban;
         vector<vector<double> > matans;
         
@@ -626,12 +690,12 @@ void nn_vs_nn(int start_num, int end_num){
         
         matplotlib g;
         g.open();
-        g.screen(0, 0, 100, 6);
+        g.screen(0, 0, 200, 1);
         
         double prime = 0.0;
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 200; i++) {
             nr.net.for_and_backward(matrixban, matrixans);
-            nr.net.leaning_adam(0.01);
+            nr.net.leaning_adam(0.005);
             double err = nr.net.calculate_error(matrixban, matrixans);
             std::cout << "sequence:" << sequence << " " << i+1 << " err = " << err << std::endl;
             g.line(i-1,prime,i,err);
@@ -642,7 +706,7 @@ void nn_vs_nn(int start_num, int end_num){
         nr.net.save_network(nn_name);
         
         clock_t end = clock();
-        std::cout << "sequence " << sequence+1 << " end in " << (double)(end - start) / CLOCKS_PER_SEC << "sec." << std::endl;
+        std::cout << "sequence " << sequence << " end in " << (double)(end - start) / CLOCKS_PER_SEC << "sec." << std::endl;
     }
 }
 
@@ -656,7 +720,7 @@ void init(){
 int main(){
     init();
     
-    nn_vs_nn(1, 10);
+    nn_vs_nn(1, 10, "rand_and_ai");
     
     return 0;
 }
