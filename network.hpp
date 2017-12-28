@@ -92,11 +92,14 @@ public:
                 in.t[i][j] = (relu_prime.t[i][j] > 0)? in.t[i][j]: 0;
             }
         }
+        
         //bias
         bias_prime = in.sum_column();
         for (int i = 0; i < bias_prime.w; i++) {
-            bias_ada_grad.t[0][i] += bias_prime.t[0][i]*bias_prime.t[0][i];
+            bias_velocity_matrix[0][i] = 0.9*bias_velocity_matrix[0][i] + 0.1*bias_prime[0][i];
+            bias_ada_grad.t[0][i] = 0.999*bias_ada_grad.t[0][i] + 0.001*bias_prime.t[0][i]*bias_prime.t[0][i];
         }
+        
         //affine
         x_transpose.dot(in);
         prime_w_list = x_transpose;
@@ -104,10 +107,10 @@ public:
         matrix wtrans;
         wtrans = w_list.transpose();
         in.dot(wtrans);
-        
         for (int i = 0; i < prime_w_list.h; i++) {
             for (int j = 0; j < prime_w_list.w; j++) {
-                ada_grad.t[i][j] += prime_w_list.t[i][j]*prime_w_list.t[i][j];
+                velocity_matrix[i][j] = 0.9*velocity_matrix[i][j] + 0.1*prime_w_list.t[i][j];
+                ada_grad.t[i][j] = 0.999*ada_grad.t[i][j] + 0.001*prime_w_list.t[i][j]*prime_w_list.t[i][j];
             }
         }
     }
@@ -165,7 +168,8 @@ public:
         //bias
         bias_prime = in.sum_column();
         for (int i = 0; i < bias_prime.w; i++) {
-            bias_ada_grad.t[0][i] += bias_prime.t[0][i]*bias_prime.t[0][i];
+            bias_velocity_matrix[0][i] = 0.9*bias_velocity_matrix[0][i] + 0.1*bias_prime[0][i];
+            bias_ada_grad.t[0][i] = 0.999*bias_ada_grad.t[0][i] + 0.001*bias_prime.t[0][i]*bias_prime.t[0][i];
         }
         //affine
         x_transpose.dot(in);
@@ -177,7 +181,8 @@ public:
         
         for (int i = 0; i < prime_w_list.h; i++) {
             for (int j = 0; j < prime_w_list.w; j++) {
-                ada_grad.t[i][j] += prime_w_list.t[i][j]*prime_w_list.t[i][j];
+                velocity_matrix[i][j] = 0.9*velocity_matrix[i][j] + 0.1*prime_w_list.t[i][j];
+                ada_grad.t[i][j] = 0.999*ada_grad.t[i][j] + 0.001*prime_w_list.t[i][j]*prime_w_list.t[i][j];
             }
         }
     }
@@ -384,21 +389,10 @@ public:
         }
     }
     
-    static void adam_lite(double leaning_rate, matrix &ada_grad, matrix &velocity_matrix, matrix &prime_w_list, matrix &w_list){
+    static void adam(double leaning_rate, matrix &ada_grad, matrix &velocity_matrix, matrix &prime_w_list, matrix &w_list){
         for (int i = 0; i < prime_w_list.h; i++) {
             for (int j = 0; j < prime_w_list.w; j++) {
-                ada_grad.t[i][j] += prime_w_list.t[i][j]*prime_w_list.t[i][j];
-                velocity_matrix.t[i][j] = 0.9*velocity_matrix.t[i][j] - (leaning_rate/sqrt(ada_grad.t[i][j] + 0.0000001))*prime_w_list.t[i][j];
-                w_list.t[i][j] += velocity_matrix.t[i][j];
-            }
-        }
-    }
-    
-    static void momentam(double leaning_rate, matrix &ada_grad, matrix &velocity_matrix, matrix &prime_w_list, matrix &w_list){
-        for (int i = 0; i < prime_w_list.h; i++) {
-            for (int j = 0; j < prime_w_list.w; j++) {
-                velocity_matrix.t[i][j] = 0.9*velocity_matrix.t[i][j] - prime_w_list.t[i][j];
-                w_list.t[i][j] += velocity_matrix.t[i][j];
+                w_list.t[i][j] -= (leaning_rate*10*velocity_matrix.t[i][j])/(sqrt(1000*ada_grad[i][j])+0.00000001);
             }
         }
     }
@@ -422,10 +416,6 @@ public:
     
     void leaning_adam(double leaning_rate){
         leaning(leaning_rate, adam_lite);
-    }
-    
-    void leaning_momentam(double leaning_rate){
-        leaning(leaning_rate, momentam);
     }
     
     void leaning_sgd(double leaning_rate){

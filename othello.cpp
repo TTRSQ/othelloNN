@@ -558,7 +558,7 @@ void nn_vs_nn(int start_num, int end_num, string name){
         vector<ban_hist> win_and_d_hist;
         vector<ban_hist> lose_hist;
         
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 100; i++) {
             vector<ban_hist> temp_blackhist;
             vector<ban_hist> temp_whitehist;
             
@@ -609,62 +609,62 @@ void nn_vs_nn(int start_num, int end_num, string name){
         }
         //ここでRandom に対する負け試合を50 得たい。
         
-        int lose_counter = 0;
-        int rand_color = blk;
-        int rand_rate_count = 0;
-        
-        while (lose_counter < 50) {
-            rand_rate_count++;
-            vector<ban_hist> temp_blackhist;
-            vector<ban_hist> temp_whitehist;
-            
-            init_ban();
-            int player = blk;
-            rand_color = (rand_color == wht)? blk: wht;
-            
-            while (!end_game()) {
-                vector<pair<int, int> > v = get_putList(player);
-                if (v.size() == 0) {
-                    player = (player == wht)? blk: wht;
-                    continue;
-                }
-                
-                ban_hist hist;
-                pair<int, int> p;
-                
-                if (player == rand_color) {
-                    p = v[rand()%v.size()];
-                }else{
-                    p = nr.nnAnsor(player);
-                }
-                
-                hist.bancpy_separate(player);
-                update_xy(p.first, p.second, player, ban);
-                
-                if (player == blk) {
-                    temp_blackhist.push_back(hist);
-                }else{
-                    temp_whitehist.push_back(hist);
-                }
-                
-                player = (player == wht)? blk: wht;
-            }
-            std::map<int, int> counter = count();
-            
-            //random に負けた場合のみデータセットに追加
-            if (counter[rand_color] > counter[((rand_color == blk)? wht: blk)]) {
-                if (rand_color == blk) {
-                    win_and_d_hist.insert(win_and_d_hist.end(), temp_blackhist.begin(), temp_blackhist.end());
-                    lose_hist.insert(lose_hist.end(), temp_whitehist.begin(), temp_whitehist.end());
-                }else{
-                    win_and_d_hist.insert(win_and_d_hist.end(), temp_whitehist.begin(), temp_whitehist.end());
-                    lose_hist.insert(lose_hist.end(), temp_blackhist.begin(), temp_blackhist.end());
-                }
-                lose_counter++;
-            }
-        }
-        
-        cout << "win_rate = " << (1.0*(rand_rate_count - 50))/rand_rate_count << endl;
+//        int lose_counter = 0;
+//        int rand_color = blk;
+//        int rand_rate_count = 0;
+//
+//        while (lose_counter < 50) {
+//            rand_rate_count++;
+//            vector<ban_hist> temp_blackhist;
+//            vector<ban_hist> temp_whitehist;
+//
+//            init_ban();
+//            int player = blk;
+//            rand_color = (rand_color == wht)? blk: wht;
+//
+//            while (!end_game()) {
+//                vector<pair<int, int> > v = get_putList(player);
+//                if (v.size() == 0) {
+//                    player = (player == wht)? blk: wht;
+//                    continue;
+//                }
+//
+//                ban_hist hist;
+//                pair<int, int> p;
+//
+//                if (player == rand_color) {
+//                    p = v[rand()%v.size()];
+//                }else{
+//                    p = nr.nnAnsorMax(player);
+//                }
+//
+//                hist.bancpy_separate(player);
+//                update_xy(p.first, p.second, player, ban);
+//
+//                if (player == blk) {
+//                    temp_blackhist.push_back(hist);
+//                }else{
+//                    temp_whitehist.push_back(hist);
+//                }
+//
+//                player = (player == wht)? blk: wht;
+//            }
+//            std::map<int, int> counter = count();
+//
+//            //random に負けた場合のみデータセットに追加
+//            if (counter[rand_color] > counter[((rand_color == blk)? wht: blk)]) {
+//                if (rand_color == blk) {
+//                    win_and_d_hist.insert(win_and_d_hist.end(), temp_blackhist.begin(), temp_blackhist.end());
+//                    lose_hist.insert(lose_hist.end(), temp_whitehist.begin(), temp_whitehist.end());
+//                }else{
+//                    win_and_d_hist.insert(win_and_d_hist.end(), temp_whitehist.begin(), temp_whitehist.end());
+//                    lose_hist.insert(lose_hist.end(), temp_blackhist.begin(), temp_blackhist.end());
+//                }
+//                lose_counter++;
+//            }
+//        }
+//
+//        cout << "win_rate = " << (1.0*(rand_rate_count - 50))/rand_rate_count << endl;
         
         //ここまでで学習データ作成完了。
         
@@ -704,7 +704,13 @@ void nn_vs_nn(int start_num, int end_num, string name){
         
         g.close();
         nr.net.save_network(nn_name);
-        
+        int game_counter = 0;
+        int col = wht;
+        for (int game = 0; game < 300; game++) {
+            game_counter += rand_vs_nn(col, nn_name);
+            col = (col == wht)? blk: wht;
+        }
+        cout << "win_rate = " << game_counter/300.0 << endl;
         clock_t end = clock();
         std::cout << "sequence " << sequence << " end in " << (double)(end - start) / CLOCKS_PER_SEC << "sec." << std::endl;
     }
@@ -719,8 +725,8 @@ void init(){
 
 int main(){
     init();
+    nn_vs_nn(9, 10, "SPprams200_");
     
-    nn_vs_nn(1, 10, "rand_and_ai");
     
     return 0;
 }
