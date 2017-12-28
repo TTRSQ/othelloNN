@@ -695,7 +695,7 @@ void nn_vs_nn(int start_num, int end_num, string name){
         double prime = 0.0;
         for (int i = 0; i < 200; i++) {
             nr.net.for_and_backward(matrixban, matrixans);
-            nr.net.leaning_adam(0.005);
+            nr.net.leaning_adam(0.001);
             double err = nr.net.calculate_error(matrixban, matrixans);
             std::cout << "sequence:" << sequence << " " << i+1 << " err = " << err << std::endl;
             g.line(i-1,prime,i,err);
@@ -725,7 +725,7 @@ void init(){
 
 int main(){
     init();
-    nn_vs_nn(9, 10, "SPprams200_");
+    nn_vs_nn(10, 10, "SPprams200_");
     
     
     return 0;
