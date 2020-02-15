@@ -1,2 +1,2 @@
 # othelloNN
-I am studying neural net with Othello.
+I study neural net with Othello.
